@@ -1,0 +1,30 @@
+# Dokploy "Docker Compose" service for hermes-mcp.
+# Cloudflare Tunnel -> http://dokploy-traefik:80 (entrypoint "web") -> this container:8765
+services:
+  hermes-mcp:
+    build: .
+    restart: unless-stopped
+    env_file: .env   # Dokploy writes its Environment tab to .env next to this file
+    environment:
+      BIND_HOST: 0.0.0.0
+      BIND_PORT: 8765
+    expose:
+      - "8765"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - dokploy-network
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.hermes-mcp.rule=Host(`${MCP_PUBLIC_HOST:-hermes-mcp.ordinatude.dev}`)
+      - traefik.http.routers.hermes-mcp.entrypoints=web
+      - traefik.http.services.hermes-mcp.loadbalancer.server.port=8765
+
+networks:
+  dokploy-network:
+    external: true
